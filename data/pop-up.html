@@ -1,0 +1,93 @@
+<html>
+<head>
+<style type="text/css" media="all">
+      textarea {
+        margin: 10px;
+      }
+      
+      body {
+        background-color: white;
+      }
+      
+	  /* http://mxr.mozilla.org/mozilla-b2g37_v2_2/source/layout/style/html.css */
+	  
+	  dictname {
+		display: block;
+		font-size: 1.00em;
+		font-weight: bold;
+		margin: 1.33em 0;
+	  }
+	  
+	  partofspeech {
+		font-weight: bolder;
+	  }
+	  
+	  label {
+		font-style: italic;
+	  }
+	  
+	  /*http://blog.oscarliang.net/eye-pleasing-colors/*/
+	  
+	  /*http://www.hitmill.com/html/pastels.html*/
+	  
+<!--
+	  p[bgtype="even"] {
+			background-color: #C9EAF3;
+		}
+	  p[bgtype="odd"] {
+			background-color: #EFD7FF;
+		}
+-->
+		
+	p{
+		margin: 1px;
+		padding: 4px;
+	}
+	
+	ant{
+		font-style:italics;
+	}
+	
+	nav{
+		position: fixed;
+		top:0px;
+		left:0px;
+		padding:1%;
+		background-color: #f2eaf2;
+		width:100%;
+	}
+
+	word{
+		user-select: none;
+		-moz-user-select: none;
+		cursor: pointer;
+	}
+	
+	.invisible{
+		display:none;
+	}
+
+</style>
+ </head>
+<body id="body">
+	<nav id="navigation">
+	</nav>
+	<br/>
+</body>
+<script>
+function selectWordDef(elmnt) {
+	var defNO = elmnt.getAttribute("defNO");
+	
+	var sections = document.getElementsByTagName("section");
+	
+	for(i=0; i < sections.length; i++) {
+		if(sections[i].getAttribute("defNO") == defNO) {
+			sections[i].setAttribute("class","visible");
+		}
+		else {
+			sections[i].setAttribute("class","invisible");
+		}
+	}
+}
+</script>
+</html>

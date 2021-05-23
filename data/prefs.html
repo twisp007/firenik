@@ -1,0 +1,420 @@
+<html>
+
+<head>
+	
+	<title>Configure Firenik</title>
+		
+<!--
+<meta charset="utf-8" />
+<title>Firenik Preferences Page</title>
+-->
+
+<style type="text/css" media="all">
+	p{
+		margin: 1px;
+		padding: 4px;
+	}
+
+	article{
+		margin: 1em 0;
+		padding: 4px;
+		width: 300px;
+		float:left;
+	}
+
+	#dictSelections p {
+	   margin: 0px 0;	   
+	}
+	
+	#dictSelections {
+		position: relative;
+		height: 50%;
+	}
+
+	#attribution {
+	  position: absolute;
+	  bottom: 5%;		
+	}
+	
+	.dictOptions {
+		width: 50%;
+	}
+	
+	aside {
+		width: 40%;
+		padding: 2px;
+		margin: 1%;
+		float: right;
+		border: 3px solid;
+	}
+
+</style>
+
+
+
+</head>
+
+<body id="body">
+	<fieldset id="dictSelections">
+		<legend>Dictionaries to Use:</legend>
+			<aside class="dictOptionsDescription" id="descBox"><center><h4>Hover over a dictionary to get it's description.</h4></center></aside>
+			<p class="dictOptions">
+				<input class="dictChkBoxes" type="checkbox" id="ahd_legacy" value="1" />The American Heritage(R) Dictionary of the English Language, 4e
+			<p/>
+			<p class="dictOptions">
+				<input class="dictChkBoxes" type="checkbox" id="wiktionary" value="1" />Wiktionary
+			<p/>
+			<p class="dictOptions">
+				<input class="dictChkBoxes" type="checkbox" id="gcide" value="1" />GNU Collaborative International Dictionary of English
+			<p/>
+			<p class="dictOptions">
+				<input class="dictChkBoxes" type="checkbox" id="century" value="1" />The Century Dictionary and Cyclopedia
+			<p/>
+			<p class="dictOptions">
+				<input class="dictChkBoxes" type="checkbox" id="wordnet" value="1" />WordNet 3.0 (C) 2006 by Princeton University
+			<p/>
+			<p id="attribution">
+				<a href="https://www.wordnik.com/" target="_blank"> <img src="wordnik_badge_a1.png" alt="Firenik is powered by WORDNIK."> </a>
+			</p>
+	</fieldset>
+	<fieldset id="bgColorSelections">
+		<legend>Background Colors: Want more? Refresh the page!</legend>
+	</fieldset>
+	<fieldset id="saveChanges">
+		<center>
+			All changes have been saved: <input type="button" value="Revert" id="revert"/>
+			|
+			<input type="button" value="Exit" id="exit"/>
+		</center>
+	</fieldset>
+
+<script>
+	//return an array with unique elements
+	var unique = function(xs) {
+		return xs.filter(function(x, i) {
+			return xs.indexOf(x) === i
+		})
+	}
+	
+	/**
+	 * https://gist.github.com/mjackson/5311256
+	 *
+	 * Converts an HSL color value to RGB. Conversion formula
+	 * adapted from http://en.wikipedia.org/wiki/HSL_color_space.
+	 * Assumes h, s, and l are contained in the set [0, 1] and
+	 * returns r, g, and b in the set [0, 255].
+	 *
+	 * @param   Number  h       The hue
+	 * @param   Number  s       The saturation
+	 * @param   Number  l       The lightness
+	 * @return  Array           The RGB representation
+	 */
+	function hslToRgb(h, s, l) {
+	  var r, g, b;
+
+	  if (s == 0) {
+		r = g = b = l; // achromatic
+	  } else {
+		function hue2rgb(p, q, t) {
+		  if (t < 0) t += 1;
+		  if (t > 1) t -= 1;
+		  if (t < 1/6) return p + (q - p) * 6 * t;
+		  if (t < 1/2) return q;
+		  if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+		  return p;
+		}
+
+		var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+		var p = 2 * l - q;
+
+		r = hue2rgb(p, q, h + 1/3);
+		g = hue2rgb(p, q, h);
+		b = hue2rgb(p, q, h - 1/3);
+	  }
+
+	  return [ r * 255, g * 255, b * 255 ];
+	}
+	
+	//https://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb
+	//RGB to hex conversion and add any required zero padding:
+	function rgbToHex(r, g, b) {
+		return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+	}
+	
+	//return a pastel color in hex
+	// number = [0,1]
+	//~ http://kentor.me/posts/generating-pastel-colors-for-css/
+	//~ http://www.husl-colors.org/
+	function  getPastel(hue)	{
+		var saturation = 1;
+		var lightness = 0.875;
+		
+		pastel_rgb = hslToRgb(hue, saturation, lightness);
+		pastel_hex = rgbToHex(Math.round(pastel_rgb[0]), Math.round(pastel_rgb[1]), Math.round(pastel_rgb[2]));
+		
+		return pastel_hex;
+	}
+	
+	//returns complementary pastel colors in an array
+	//number = [0,1]
+	function getComplementaryPastels(randomNumber) {
+
+		var randomNumberLen = Math.log(randomNumber) * Math.LOG10E + 1 | 0;
+		
+		var h = randomNumber / Math.pow(10, randomNumberLen);
+		
+		// a complementary color is the hue rotated 180 degrees.
+		var h_cmpl = h + (180/360);
+		
+		//make sure the hue is indeed "rotated" and not exceeding 360 degrees
+		if(h_cmpl > 1)
+			h_cmpl -= 1;
+		
+		return [getPastel(h), getPastel(h_cmpl)];
+		
+	}
+	
+	//create sample backgrounds for user to chose from
+	
+	//generate random numbers
+	var MAX_RAND_NUMS = 16;
+	var randomNumbers_temp = new Uint32Array(MAX_RAND_NUMS*2);
+	window.crypto.getRandomValues(randomNumbers_temp);
+	
+	var randomNumbers = unique(randomNumbers_temp);
+
+	var bgColorSelections = document.getElementById("bgColorSelections");
+	
+	var tex1 = '(rhetoric) An abrupt breaking-off in speech, often indicated in print using an ellipsis (…) or an em dash (—).';
+	var tex2 = '(art) A technique in ceramics, art and wall design, where the top layer of pigment or slip is scratched through to reveal an underlying layer.';
+	
+	var bgSampleID = 0;
+	
+	for(var i = 0; i < MAX_RAND_NUMS; i++) {
+		rndNum = randomNumbers[i]
+		
+		pastels = getComplementaryPastels(rndNum);
+		
+		var article = document.createElement("article");
+		article.setAttribute("class", "bgSamples");
+		
+		for(j in pastels) {
+			color = pastels[j];
+			
+			//style="background-color:red;"
+			styleValue = "background-color:" + color + ";";
+			
+			
+			
+			var p = document.createElement("p");
+			var p_t = document.createTextNode(i + " : " + tex2);
+			p.setAttribute("style", styleValue);
+			p.setAttribute("id", "bgSample_" + bgSampleID);
+			p.setAttribute("bgColor", color);
+			
+			p.appendChild(p_t);
+			article.appendChild(p);
+			
+			bgSampleID += 1;
+			
+		}
+		
+		bgColorSelections.appendChild(article);
+	}
+	
+	//~ //select none box
+	
+	//~ var article = document.createElement("article");
+	//~ article.setAttribute("class", "bgSamples");
+	//~ var p = document.createElement("p");
+	//~ p.appendChild(document.createTextNode("SELECT NONE"));
+	//~ p.setAttribute("align", "center");
+	//~ var b = document.createElement("b");
+	
+	//~ b.appendChild(p);
+	//~ article.appendChild(b);
+	//~ bgColorSelections.appendChild(article);
+
+	//UX - Dictionary options - names can be clicked on to check or uncheck boxes
+	
+	var dictOptionsArray = Array.prototype.slice.call(document.getElementsByClassName("dictOptions"));
+	
+	for(var i in dictOptionsArray) {
+		var dictOption = dictOptionsArray[i];
+		
+		//on click
+		dictOption.addEventListener("click", selectOption ,false);
+
+		//on mouseover
+		dictOption.addEventListener("mouseover", function() {
+		showBG(this);
+		});
+
+		//on mouseout
+		dictOption.addEventListener("mouseout", function() {
+		hideBG(this);
+		});
+	}
+	
+	function selectOption(event) {
+		target = event.target;
+
+		//this will stop proapgation of click event from checkbox to p tag
+		//otherwise the click on checkbox will not have effect
+		if(target.className == "dictOptions") 
+			target.getElementsByTagName("input")[0].click();
+	}
+	
+	function showBG(element) {
+		var color = "#bfdeff";
+		var styleValue = "background-color:" + color + ";";
+		element.setAttribute("style", styleValue);
+		var dictName = element.childNodes[1].id;
+		showDesc(dictName);
+	}
+
+	function hideBG(element) {
+		var color = "";
+		var styleValue = "background-color:" + color + ";";
+		element.setAttribute("style", styleValue);
+	}
+
+	//dictionary descriptions
+	var dicts_desc = {
+		ahd_legacy	: {
+			title : "The American Heritage(R) Dictionary of the English Language, 4e",
+			desc : ["The American Heritage Dictionary of the English Language (AHD) is an American dictionary of English published by Boston publisher Houghton Mifflin, the first edition of which appeared in 1969."
+					],
+			wikiLink : "https://en.wikipedia.org/wiki/The_American_Heritage_Dictionary_of_the_English_Language"
+		},
+		wiktionary	: {
+			title: "Wiktionary",
+			desc : ["Wiktionary (whose name is a blend of the words wiki and dictionary) is a multilingual, web-based project to create a free content dictionary of all words in all languages. It is available in 172 languages and in Simple English. Like its sister project Wikipedia, Wiktionary is run by the Wikimedia Foundation, and is written collaboratively by volunteers, dubbed 'Wiktionarians'. Its wiki software, MediaWiki, allows almost anyone with access to the website to create and edit entries."
+					],
+			wikiLink : "https://en.wikipedia.org/wiki/Wiktionary"
+		},
+		gcide		: {
+			title : "GNU Collaborative International Dictionary of English",
+			desc : ["GCIDE is based on the GNU version of the 'Collaborative International Dictionary of English' (CIDE).",
+					"CIDE was derived from the 1913 Webster's Dictionary and has been supplemented with some of the definitions from WordNet. It is being proof-read and supplemented by volunteers from around the world."
+					],
+			wikiLink : "https://en.wikipedia.org/wiki/GCIDE"
+		},
+		century		: {
+			title: "The Century Dictionary and Cyclopedia",
+			desc : ["The Century Dictionary and Cyclopedia was one of the largest encyclopedic dictionaries of the English language. The first edition was published from 1889 to 1891 by The Century Company of New York, in six, eight, or ten volume versions (originally issued in 24 fascicles) in 7,046 pages with some 10,000 wood-engraved illustrations."
+					],
+			wikiLink : "https://en.wikipedia.org/wiki/Century_Dictionary"
+		},
+		wordnet		: {
+			title: "WordNet 3.0 (C) 2006 by Princeton University",
+			desc : ["WordNet is a lexical database for the English language. It groups English words into sets of synonyms called synsets, provides short definitions and usage examples, and records a number of relations among these synonym sets or their members. WordNet can thus be seen as a combination of dictionary and thesaurus. While it is accessible to human users via a web browser, its primary use is in automatic text analysis and artificial intelligence applications."
+					],
+			wikiLink : "https://en.wikipedia.org/wiki/WordNet"
+		}
+	};
+	
+	function showDesc(dictName) {
+		
+		var dict_title = dicts_desc[dictName]['title'];
+		var dict_desc = dicts_desc[dictName]['desc'];
+		var dict_wiki_lnk = dicts_desc[dictName]['wikiLink'];
+		
+		var descBox = document.getElementById("descBox");
+		
+		descBox.innerHTML = '';
+		var h4 = document.createElement("h4");
+
+		h4.appendChild(document.createTextNode(dict_title));
+		descBox.appendChild(h4);
+		
+		for(var j in dict_desc) {
+			var p = document.createElement("p");
+			p.appendChild(document.createTextNode(dicts_desc[dictName]['desc'][j]));
+			descBox.appendChild(p);	
+		}
+		
+		//give out a wikipedia link for further information.
+		var wikiLink = document.createElement("a");
+		wikiLink.setAttribute("href", dict_wiki_lnk);
+		wikiLink.setAttribute("target", "_blank");
+		wikiLink.appendChild(document.createTextNode("More on Wikipedia"));
+		var p = document.createElement("p");
+		p.setAttribute("align", "right");
+		p.appendChild(wikiLink);
+		descBox.appendChild(p);
+	}
+
+	//UX - background samples gets their border shown @ mouse enters
+
+	var bgSamplesArray = Array.prototype.slice.call(document.getElementsByClassName("bgSamples"));
+	for(var j in bgSamplesArray) {
+		var bgSample = bgSamplesArray[j];
+		//on click
+		bgSample.addEventListener("click", function() {
+		selectBGSample(this);
+		});
+
+		//on mouseover
+		bgSample.addEventListener("mouseover", function() {
+		showBorder(this);
+		});
+
+		//on mouseout
+		bgSample.addEventListener("mouseout", function() {
+		hideBorder(this);
+		});
+	}
+	
+	var selectedBGSample = null;
+	
+	//the first BG Sample is set as the default
+	selectBGSample(document.getElementsByClassName("bgSamples")[0]);
+	
+	function setBorder(elmnt) {
+		elmnt.style.boxShadow="inset 0px 0px 0px 10px #000000";
+	}
+	
+	function unsetBorder(elmnt) {
+		elmnt.style.boxShadow="";
+	}
+
+	function showBorder(elmnt) {
+		if(elmnt != selectedBGSample)
+			setBorder(elmnt);
+	}
+	
+	function hideBorder(elmnt) {
+		if(elmnt != selectedBGSample)
+			unsetBorder(elmnt);
+	}
+	
+	function selectBGSample(elmnt) {
+		if(selectedBGSample === null) {
+			setBorder(elmnt);
+			selectedBGSample = elmnt;
+			elmnt.setAttribute("selected", true);
+		}
+		else if(selectedBGSample === elmnt) {
+			selectedBGSample = null;
+			unsetBorder(elmnt);
+			elmnt.setAttribute("selected", false);
+		}
+		else
+		{
+			unsetBorder(selectedBGSample);
+			selectedBGSample.setAttribute("selected", true);
+			setBorder(elmnt);
+			selectedBGSample = elmnt;
+			elmnt.setAttribute("selected", true);
+		}
+	}
+	
+	
+	
+
+</script>
+
+</body>
+
+</html>

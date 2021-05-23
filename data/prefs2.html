@@ -1,0 +1,208 @@
+<html>
+
+<head>
+<!--
+<meta charset="utf-8" />
+<title>Firenik Preferences Page</title>
+-->
+
+<style type="text/css" media="all">
+      textarea {
+        margin: 10px;
+      }
+      
+      body {
+        background-color: white;
+      }
+      
+	  /* http://mxr.mozilla.org/mozilla-b2g37_v2_2/source/layout/style/html.css */
+	  
+	  dictname {
+		display: block;
+		font-size: 1.00em;
+		font-weight: bold;
+		margin: 1.33em 0;
+	  }
+	  
+	  partofspeech {
+		font-weight: bolder;
+	  }
+	  
+	  label {
+		font-style: italic;
+	  }
+	  
+	  /*http://blog.oscarliang.net/eye-pleasing-colors/*/
+	  
+	  /*http://www.hitmill.com/html/pastels.html*/
+	  
+	  p[bgtype="even"] {
+			background-color: #C9EAF3;
+		}
+	  p[bgtype="odd"] {
+			background-color: #EFD7FF;
+		}
+		
+	p{
+		margin: 1px;
+		padding: 4px
+	}
+	
+	ant{
+		font-style:italics
+	}
+	
+</style>
+
+
+
+</head>
+
+<body id="body">
+	<fieldset>
+			<legend>Dictionaries to Use:</legend>
+					<input type="checkbox" name="ahd_legacy" value="1" />The American Heritage(R) Dictionary of the English Language, 4e <br />
+					<input type="checkbox" name="wiktionary" value="1" />Wiktionary<br />
+					<input type="checkbox" name="gcide" value="1" />GNU Collaborative International Dictionary of English<br />
+					<input type="checkbox" name="century" value="1" />The Century Dictionary and Cyclopedia<br />
+					<input type="checkbox" name="wordnet" value="1" />WordNet 3.0 (C) 2006 by Princeton University<br />
+	</fieldset>
+	<fieldset id="bgc">
+	</fieldset>
+
+<script>
+function hexToRgb(hex) {
+    // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
+    var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+    hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+        return r + r + g + g + b + b;
+    });
+
+    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : null;
+}
+
+function rgbToHex(r, g, b) {
+    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}	
+	
+
+function RGB2HSV(rgb) {
+    hsv = new Object();
+    max=max3(rgb.r,rgb.g,rgb.b);
+    dif=max-min3(rgb.r,rgb.g,rgb.b);
+    hsv.saturation=(max==0.0)?0:(100*dif/max);
+    if (hsv.saturation==0) hsv.hue=0;
+    else if (rgb.r==max) hsv.hue=60.0*(rgb.g-rgb.b)/dif;
+    else if (rgb.g==max) hsv.hue=120.0+60.0*(rgb.b-rgb.r)/dif;
+    else if (rgb.b==max) hsv.hue=240.0+60.0*(rgb.r-rgb.g)/dif;
+    if (hsv.hue<0.0) hsv.hue+=360.0;
+    hsv.value=Math.round(max*100/255);
+    hsv.hue=Math.round(hsv.hue);
+    hsv.saturation=Math.round(hsv.saturation);
+    return hsv;
+}
+
+// RGB2HSV and HSV2RGB are based on Color Match Remix [http://color.twysted.net/]
+// which is based on or copied from ColorMatch 5K [http://colormatch.dk/]
+function HSV2RGB(hsv) {
+    var rgb=new Object();
+    if (hsv.saturation==0) {
+        rgb.r=rgb.g=rgb.b=Math.round(hsv.value*2.55);
+    } else {
+        hsv.hue/=60;
+        hsv.saturation/=100;
+        hsv.value/=100;
+        i=Math.floor(hsv.hue);
+        f=hsv.hue-i;
+        p=hsv.value*(1-hsv.saturation);
+        q=hsv.value*(1-hsv.saturation*f);
+        t=hsv.value*(1-hsv.saturation*(1-f));
+        switch(i) {
+        case 0: rgb.r=hsv.value; rgb.g=t; rgb.b=p; break;
+        case 1: rgb.r=q; rgb.g=hsv.value; rgb.b=p; break;
+        case 2: rgb.r=p; rgb.g=hsv.value; rgb.b=t; break;
+        case 3: rgb.r=p; rgb.g=q; rgb.b=hsv.value; break;
+        case 4: rgb.r=t; rgb.g=p; rgb.b=hsv.value; break;
+        default: rgb.r=hsv.value; rgb.g=p; rgb.b=q;
+        }
+        rgb.r=Math.round(rgb.r*255);
+        rgb.g=Math.round(rgb.g*255);
+        rgb.b=Math.round(rgb.b*255);
+    }
+    return rgb;
+}
+
+//Adding HueShift via Jacob (see comments)
+function HueShift(h,s) { 
+    h+=s; while (h>=360.0) h-=360.0; while (h<0.0) h+=360.0; return h; 
+}
+
+//min max via Hairgami_Master (see comments)
+function min3(a,b,c) { 
+    return (a<b)?((a<c)?a:c):((b<c)?b:c); 
+} 
+function max3(a,b,c) { 
+    return (a>b)?((a>c)?a:c):((b>c)?b:c); 
+}
+
+var getComplimentaryColor = function(temphex) {
+	temprgb = hexToRgb(temphex);
+	temphsv=RGB2HSV(temprgb);
+	temphsv.hue=HueShift(temphsv.hue,180.0);
+	temprgb_compl = HSV2RGB(temphsv)
+	return rgbToHex(temprgb_compl['r'], temprgb_compl['g'], temprgb_compl['b'] );
+}
+
+	//~ Reddish Tints Toward Purple Tints
+	c1 = [
+			"#ff4848","#ff68dd","#ff62b0","#fe67eb","#e469fe","#d568fd","#9669fe",
+			"#ff7575","#ff79e1","#ff73b9","#fe67eb","#e77afe","#d97bfd","#a27afe",
+			"#ff8a8a","#ff86e3","#ff86c2","#fe8bf0","#ea8dfe","#dd88fd","#ad8bfe",
+			"#ff9797","#ff97e8","#ff97cb","#fe98f1","#ed9efe","#e29bfd","#b89afe",
+			"#ffa8a8","#ffacec","#ffa8d3","#fea9f3","#efa9fe","#e7a9fe","#c4abfe",
+			"#ffbbbb","#ffacec","#ffbbdd","#ffbbf7","#f2bcfe","#edbefe","#d0bcfe",
+			"#ffcece","#ffc8f2","#ffc8e3","#ffcaf9","#f5caff","#f0cbfe","#ddceff",
+			"#ffdfdf","#ffdff8","#ffdfef","#ffdbfb","#f9d9ff","#f4dcfe","#e6dbff",
+			"#ffecec","#ffeefb","#ffecf5","#ffeefd","#fdf2ff","#faecff","#f1ecff",
+			"#fff2f2","#fffefb","#fff9fc","#fff9fe","#fffdff","#fdf9ff","#fbf9ff"
+		];
+			
+	for(i in c1){
+		var p = document.createElement("p");
+		
+		var color = c1[i];
+		var color_cmpl = getComplimentaryColor(color);
+		console.log(color_cmpl);
+		
+		var tr = document.createElement("tr");
+		
+		var td1 = document.createElement("td");
+		var td1_t = document.createTextNode(color);
+		
+		td1.setAttribute("bgcolor", color)
+		td1.appendChild(td1_t);
+		
+		var td2 = document.createElement("td");
+		var td2_t = document.createTextNode(color_cmpl);
+		
+		td2.setAttribute("bgcolor", color_cmpl)
+		td2.appendChild(td2_t);
+		
+		tr.appendChild(td1);
+		tr.appendChild(td2);
+		
+		table.appendChild(tr);
+	}
+	var body_node = document.getElementById("body");
+	
+	body_node.appendChild(table);
+</script>
+
+</body>
+
+</html>
